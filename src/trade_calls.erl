@@ -1,5 +1,4 @@
 -module(trade_calls).
-%% todas las librerías exportadas
 -compile(export_all).
 
 %% test a little bit of everything and also deadlocks on ready state
