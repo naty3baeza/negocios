@@ -11,6 +11,13 @@ terminate/3, code_change/4,
 ocupada/2, ocupada/3, ocupada_espera/2, ocupada_espera/3, negociar/2,
 negociar/3, espera/2, lista/2, lista/3]).
 
+-record(state, {nombre="",
+                otro,
+                itemspropios=[],
+                otrositems=[],
+                monitor,
+                desde}).
+
 %%% API PUBLICA
 start(Name) ->
 gen_fsm:start(?MODULE, [Name], []).
