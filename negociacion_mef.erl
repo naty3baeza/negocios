@@ -70,5 +70,17 @@ gen_fsm:send_event(OtroPid, no_aun).
 
 %% le dice a la otra MEF que la jugadora esta esperando
 %% por el estado 'lista'. El estado deberia pasar a 'lista'
-estoy_lista(OtrorPid) ->
+estoy_lista(OtroPid) ->
 gen_fsm:send_event(OtroPid, 'lista!').
+
+%% Se da cuenta que la MEF esta en estado lista.
+ack_trans(OtroPid) ->
+gen_fsm:send_event(OtroPid, ack).
+
+%% pregunta si esta lista para hacer commit
+pide_commit(OtroPid) ->
+gen_fsm:sync_send_event(OtroPid, pide_commit).
+
+%% begin the synchronous commit
+hace_commit(OtroPid) ->
+gen_fsm:sync_send_event(OtroPid, hace_commit).
