@@ -42,3 +42,11 @@ gen_fsm:sync_send_event(MiPid, lista, infinito).
 %% Cancelas la transaccion
 cancela(MiPid) ->
 gen_fsm:sync_send_all_state_event(MiPid, cancela).
+
+%% pide a la otra MEF iniciar la negociacion
+pide_negociar(OtroPid, MiPid) ->
+gen_fsm:send_event(OtroPid, {pide_negociar, MiPid}).
+
+%% Reenvia el mensaje del cliente aceptando la negociacion
+acepta_negociar(OtroPid, MiPid) ->
+gen_fsm:send_event(OtroPid, {acepta_negociar, MiPid}).
