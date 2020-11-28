@@ -1,1 +1,2 @@
-# Código ejemplo de una máquina de estado finita para Erlang
+# Código ejemplo usando mecanismos de sincronización para Erlang
+Usando un esquema de Máquina de estados finitos.
