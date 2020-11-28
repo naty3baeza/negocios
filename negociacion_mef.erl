@@ -95,3 +95,13 @@ gen_fsm:sync_send_event(OtroPid, hace_commit).
 %% API del gen_fsm
 init(Nombre) ->
 {ok, ocupada, #estado{nombre=Nombre}}.
+
+%% Envia una notificacion a las jugadoras.
+%% la salida va por shell, esto es suficiente para propositos de prueba
+notifica(#estado{nombre=N}, Str, Args) ->
+io:format("~s: "++Str++"~n", [N|Args]).
+
+%% la funcion 'inesperados' permite logear mensajes inesperados
+unexpected(Msg, Estado) ->
+io:format("~p se recibio un evento inesperado ~p durante el estado ~p~n",
+[self(), Msg, Estado]).
