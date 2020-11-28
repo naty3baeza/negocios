@@ -102,6 +102,23 @@ notifica(#estado{nombre=N}, Str, Args) ->
 io:format("~s: "++Str++"~n", [N|Args]).
 
 %% la funcion 'inesperados' permite logear mensajes inesperados
-unexpected(Msg, Estado) ->
+inesperado(Msg, Estado) ->
 io:format("~p se recibio un evento inesperado ~p durante el estado ~p~n",
 [self(), Msg, Estado]).
+
+ocupada({pide_negociar, OtroPid}, E=#estado{}) ->
+  Ref = monitor(process, OtroPid),
+  notifica(E, "~p pregunta si quiere comenzar a negociar", [OtroPid]),
+  {siguiente_estado, ocupada_espera, E#estado{otra=OtroPid, monitor=Ref}};
+  ocupada(Evento, Dato) ->
+    inesperado(Evento, ocupada),
+    {siguiente_estado, ocupada, Dato}.
+
+ocupada({negociar, OtroPid}, Desde, E=#estado{}) ->
+  pide_negociar(OtroPid, self()),
+  notifica(E, "pide a usuario ~p por un negocio", [OtroPid]),
+  Ref = monitor(process, OtroPid),
+  {siguiente_estado, ocupada_espera, E#estado{otra=OtroPid, monitor=Ref, desde=Desde}};
+ocupada(Evento, _Desde, Dato) ->
+  inesperado(Evento, ocupada),
+  {siguiente_estado, ocupada, Dato}.
