@@ -50,3 +50,11 @@ gen_fsm:send_event(OtroPid, {pide_negociar, MiPid}).
 %% Reenvia el mensaje del cliente aceptando la negociacion
 acepta_negociar(OtroPid, MiPid) ->
 gen_fsm:send_event(OtroPid, {acepta_negociar, MiPid}).
+
+%% reenvia una oferta al cliente
+hace_oferta(OtroPid, Item) ->
+gen_fsm:send_event(OtroPid, {hace_oferta, Item}).
+
+%% reenvia una cancelacion de oferta a cliente
+deshace_oferta(OtroPid, Item) ->
+gen_fsm:send_event(OtroPid, {deshace_oferta, Item}).
