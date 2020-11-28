@@ -58,3 +58,17 @@ gen_fsm:send_event(OtroPid, {hace_oferta, Item}).
 %% reenvia una cancelacion de oferta a cliente
 deshace_oferta(OtroPid, Item) ->
 gen_fsm:send_event(OtroPid, {deshace_oferta, Item}).
+
+%% pregunta a la otra jugadora si esta lista para iniciar la negociacion
+estas_lista(OtroPid) ->
+gen_fsm:send_event(OtroPid, estas_lista).
+
+%% responde que de su lado no esta lista para negociar
+%% esto no es en estado 'espera'
+no_aun(OtroPid) ->
+gen_fsm:send_event(OtroPid, no_aun).
+
+%% le dice a la otra MEF que la jugadora esta esperando
+%% por el estado 'lista'. El estado deberia pasar a 'lista'
+estoy_lista(OtrorPid) ->
+gen_fsm:send_event(OtroPid, 'lista!').
