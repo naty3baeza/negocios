@@ -81,6 +81,6 @@ gen_fsm:send_event(OtroPid, ack).
 pide_commit(OtroPid) ->
 gen_fsm:sync_send_event(OtroPid, pide_commit).
 
-%% begin the synchronous commit
+%% comienza el commit sincrono
 hace_commit(OtroPid) ->
 gen_fsm:sync_send_event(OtroPid, hace_commit).
