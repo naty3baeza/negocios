@@ -180,3 +180,32 @@ negociar(estas_lista, E=#estado{otra=OtroPid}) ->
 negociar(Evento, Dato) ->
   inesperado(Evento, negociar),
   {siguiente_estado, negociar, Dato}.
+
+espera({hace_oferta, Item}, E=#estado{otrositems=OtrosItems}) ->
+  gen_fsm:reply(E#estado.desde, oferta_modificada),
+  notifica(E, "la otra jugadora ofrece ~p", [Item]),
+  {siguiente_estado, negociar, E#estado{otrositems=agrega(Item, OtrosItems)}};
+espera({deshace_oferta, Item}, E=#estado{otrositems=OtrosItems}) ->
+  gen_fsm:reply(E#estado.desde, oferta_modificada),
+  notifica(E, "La otra jugadora cancela oferta de ~p", [Item]),
+  {siguiente_estado, negociar, E#estado{otrositems=quita(Item, OtrosItems)}};
+
+espera(estas_lista, E=#estado{}) ->
+  estoy_lista(E#estado.otra),
+  notifica(E, "Me preguntaron si estoy lista y lo estoy. Esperando por la misma respuesta.", []),
+  {siguiente_estado, espera, E};
+
+espera(no_aun, E = #estado{}) ->
+  notifica(E, "La otra jugadora no esta lista aun", []),
+  {siguiente_estado, espera, E};
+
+espera('lista!', E=#estado{}) ->
+  estoy_lista(E#estado.otra),
+  ack_trans(E#estado.otra),
+  gen_fsm:reply(E#estado.desde, ok),
+  notifica(E, "La otra jugadora esta lista. Pasando al estado lista", []),
+  {siguiente_estado, lista, E};
+
+espera(Evento, Dato) ->
+  inesperado(Evento, espera),
+  {siguiente_estado, espera, Dato}.
