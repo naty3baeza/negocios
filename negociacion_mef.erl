@@ -285,15 +285,15 @@ handle_sync_event(cancela, _Desde, _NombreEstado, E = #estado{}) ->
   {stop, cancelado, ok, E};
 %% No responder a eventos inesperados.
 handle_sync_event(Evento, _Desde, NombreEstado, Dato) ->
-  inesperado(Evento, _NombreEstado),
+  inesperado(Evento, NombreEstado),
   {siguiente_estado, NombreEstado, Dato}.
 
 handle_info({'DOWN', Ref, process, Pid, Motivo}, _, E=#estado{otra=Pid, monitor=Ref}) ->
   notifica(E, "La otra jugadora murio", []),
   {stop, {other_down, Motivo}, E};
-handle_info(Info, StateName, Data) ->
-  unexpected(Info, StateName),
-  {next_state, StateName, Data}.
+handle_info(Info, NombreEstado, Dato) ->
+  inesperado(Info, NombreEstado),
+  {siguiente_estado, NombreEstado, Dato}.
 
 code_change(_OldVsn, NombreEstado, Dato, _Extra) ->
   {ok, NombreEstado, Dato}.
