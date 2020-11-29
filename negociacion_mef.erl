@@ -237,3 +237,20 @@ lista(ack, E=#estado{}) ->
 lista(Evento, Dato) ->
   inesperado(Evento, lista),
   {siguiente_estado, lista, Dato}.
+
+lista(pide_commit, _Desde, E) ->
+  notifica(E, "responde al pedido de commit", []),
+  {reply, lista_commit, lista, E};
+
+lista(hace_commit, _Desde, E) ->
+  notifica(E, "committeando...", []),
+  commit(E),
+  {stop, normal, ok, E};
+lista(Evento, _Desde, Dato) ->
+  inesperado(Evento, lista),
+  {siguiente_estado, lista, Dato}.
+
+commit(E = #estado{}) ->
+  io:format("Transaccion completada para ~s. "
+            "Items enviados son:~n~p,~n recibidos son:~n~p.~n",
+            [E#estado.nombre, E#estado.itemspropios, E#estado.otrositems]).
