@@ -212,3 +212,28 @@ espera(Evento, Dato) ->
 
 prioridad(MiPid, OtroPid) when MiPid > OtroPid -> true;
 prioridad(MiPid, OtroPid) when MiPid < OtroPid -> false.
+
+
+lista(ack, E=#estado{}) ->
+  case prioridad(self(), E#estado.otra) of
+    true ->
+      try
+        notifica(E, "preguntando por commit", []),
+        lista_commit = pide_commit(E#estado.otra),
+        notifica(E, "indicando commit", []),
+        ok = hace_commit(E#estado.otra),
+        notifica(E, "commiteando...", []),
+        commit(E),
+        {stop, normal, E}
+
+      catch Class:Reason ->
+        %% aborta! sea por falla de lista_commit o hace_commit
+        notifica(E, "commit fallo", []),
+        {stop, {Class, Reason}, E}
+      end;
+    false ->
+      {siguiente_estado, lista, E}
+    end;
+lista(Evento, Dato) ->
+  inesperado(Evento, lista),
+  {siguiente_estado, lista, Dato}.
