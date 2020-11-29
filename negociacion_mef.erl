@@ -12,7 +12,7 @@ ocupada/2, ocupada/3, ocupada_espera/2, ocupada_espera/3, negociar/2,
 negociar/3, espera/2, lista/2, lista/3]).
 
 -record(estado, {nombre="",
-                 otro,
+                 otra,
                  itemspropios=[],
                  otrositems=[],
                  monitor,
@@ -151,3 +151,21 @@ agrega(Item, Items) ->
 %% quitar un item de una lista de items
 quita(Item, Items) ->
 Items -- [Item].
+
+negocia({oferta, Item}, E=#estado{itemspropios=ItemsPropios}) ->
+  hace_oferta(E#estado.otra, Item),
+  notifica(E, "oferta  ~p", [Item]),
+  {siguiente_estado, negociar, S#state{itemspropios=agrega(Item, ItemsPropios)}};
+%% El propio lado retractando un item de oferta
+negocia({rechaza_oferta, Item}, E=#estado{itemspropios=ItemsPropios}) ->
+  deshace_oferta(E#estado.otra, Item),
+  notifica(E, "cancelando oferta en ~p", [Item]),
+  {siguiente_estado, negociar, E#estado{itemspropios=quita(Item, ItemsPropios)}};
+%% el otro lado ofreciendo items
+negociar({oferta, Item}, E=#estado{otrositems=OtrosItems}) ->
+  notifica(E, "la otra jugadora ofreciendo ~p", [Item]),
+  {siguiente_estado, negociar, E#estado{otrositems=agrega(Item, OtrosItems)}};
+%% el otro lado rechaza un item de oferta
+negociar({deshace_oferta, Item}, E=#estado{otrositems=OtrosItems}) ->
+  notifica(E, "La otra jugadora cancela oferta en ~p", [Item]),
+  {siguiente_estado, negociar, E#estado{otrositems=quita(Item, OtrosItems)}};
