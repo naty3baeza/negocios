@@ -209,3 +209,6 @@ espera('lista!', E=#estado{}) ->
 espera(Evento, Dato) ->
   inesperado(Evento, espera),
   {siguiente_estado, espera, Dato}.
+
+prioridad(MiPid, OtroPid) when MiPid > OtroPid -> true;
+prioridad(MiPid, OtroPid) when MiPid < OtroPid -> false.
