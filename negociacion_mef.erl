@@ -155,7 +155,7 @@ Items -- [Item].
 negociar({oferta, Item}, E=#estado{itemspropios=ItemsPropios}) ->
   hace_oferta(E#estado.otra, Item),
   notifica(E, "oferta  ~p", [Item]),
-  {siguiente_estado, negociar, S#state{itemspropios=agrega(Item, ItemsPropios)}};
+  {siguiente_estado, negociar, E#estado{itemspropios=agrega(Item, ItemsPropios)}};
 %% El propio lado retractando un item de oferta
 negociar({rechaza_oferta, Item}, E=#estado{itemspropios=ItemsPropios}) ->
   deshace_oferta(E#estado.otra, Item),
