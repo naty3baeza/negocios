@@ -143,3 +143,11 @@ ocupada_espera(acepta_negociar, _Desde, E=#estado{otra=OtroPid}) ->
 ocupada_espera(Evento, _Desde, Datos) ->
   inesperado(Evento, ocupada_espera),
   {siguiente_estado, ocupada_espera, Datos}.
+
+%% agrega un item a una lista de items
+agrega(Item, Items) ->
+[Item | Items].
+
+%% quitar un item de una lista de items
+quita(Item, Items) ->
+Items -- [Item].
