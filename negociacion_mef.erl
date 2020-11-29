@@ -152,12 +152,12 @@ agrega(Item, Items) ->
 quita(Item, Items) ->
 Items -- [Item].
 
-negocia({oferta, Item}, E=#estado{itemspropios=ItemsPropios}) ->
+negociar({oferta, Item}, E=#estado{itemspropios=ItemsPropios}) ->
   hace_oferta(E#estado.otra, Item),
   notifica(E, "oferta  ~p", [Item]),
   {siguiente_estado, negociar, S#state{itemspropios=agrega(Item, ItemsPropios)}};
 %% El propio lado retractando un item de oferta
-negocia({rechaza_oferta, Item}, E=#estado{itemspropios=ItemsPropios}) ->
+negociar({rechaza_oferta, Item}, E=#estado{itemspropios=ItemsPropios}) ->
   deshace_oferta(E#estado.otra, Item),
   notifica(E, "cancelando oferta en ~p", [Item]),
   {siguiente_estado, negociar, E#estado{itemspropios=quita(Item, ItemsPropios)}};
@@ -169,3 +169,14 @@ negociar({oferta, Item}, E=#estado{otrositems=OtrosItems}) ->
 negociar({deshace_oferta, Item}, E=#estado{otrositems=OtrosItems}) ->
   notifica(E, "La otra jugadora cancela oferta en ~p", [Item]),
   {siguiente_estado, negociar, E#estado{otrositems=quita(Item, OtrosItems)}};
+
+negociar(estas_lista, E=#estado{otra=OtroPid}) ->
+  io:format("La otra jugadora esta lista para la negociacion~n"),
+  notifica(E, "La otra jugadora esta lista para transferir bienes:~n"
+  "Vos tenes ~p, La otra jugadora tiene ~p",
+  [E#estado.otrositems, E#estado.itemspropios]),
+  no_aun(OtroPid),
+  {siguiente_estado, negociar, E};
+negociar(Evento, Dato) ->
+  inesperado(Evento, negociar),
+  {siguiente_estado, negociar, Dato}.
