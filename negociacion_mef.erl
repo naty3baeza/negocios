@@ -92,6 +92,10 @@ gen_fsm:sync_send_event(OtroPid, pide_commit).
 hace_commit(OtroPid) ->
 gen_fsm:sync_send_event(OtroPid, hace_commit).
 
+%% Hace que la otra MEF se entere que tu MEF cancelo el trato.
+notifica_cancelacion(OtroPid) ->
+    gen_fsm:send_all_state_event(OtroPid, cancela).
+
 %% API del gen_fsm
 init(Nombre) ->
 {ok, ocupada, #estado{nombre=Nombre}}.
@@ -134,7 +138,7 @@ ocupada_espera({acepta_negociar, OtroPid}, E=#estado{otra=OtroPid}) ->
     {siguiente_estado, negociar, E};
 ocupada_espera(Evento, Dato) ->
   inesperado(Evento, ocupada_espera),
-  {siguiente_estado, ocupada_espera, Data}.
+  {siguiente_estado, ocupada_espera, Dato}.
 
 ocupada_espera(acepta_negociar, _Desde, E=#estado{otra=OtroPid}) ->
   acepta_negociar(OtroPid, self()),
@@ -276,7 +280,7 @@ handle_event(Evento, NombreEstado, Dato) ->
 %% El vento de cancelacion viene de la otra jugadora. Debemos advertir a la otra
 %% jugadora que vamos a salir.
 handle_sync_event(cancela, _Desde, _NombreEstado, E = #estado{}) ->
-  notify_cancel(E#estado.otra),
+  notifica_cancelacion(E#estado.otra),
   notifica(E, "cancelando negociacion, envio evento de cancelacion", []),
   {stop, cancelado, ok, E};
 %% No responder a eventos inesperados.
@@ -296,6 +300,6 @@ code_change(_OldVsn, NombreEstado, Dato, _Extra) ->
 
 %% Transaccion completada
 terminate(normal, lista, E=#estado{}) ->
-  notice(E, "dejando MEF.", []);
+  notifica(E, "dejando MEF.", []);
 terminate(_Motivo, _NombreEstado, _DatoEstado) ->
   ok.
