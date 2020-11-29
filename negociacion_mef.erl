@@ -254,3 +254,40 @@ commit(E = #estado{}) ->
   io:format("Transaccion completada para ~s. "
             "Items enviados son:~n~p,~n recibidos son:~n~p.~n",
             [E#estado.nombre, E#estado.itemspropios, E#estado.otrositems]).
+
+
+%% La otra jugadora envia el evento de cancelacion
+%% Hay que detenerse no importa lo que se estaba haciendo y terminar.
+handle_event(cancela, _NombreEstado, E=#estado{}) ->
+  notifica(E, "evento de cancelacion recibido", []),
+  {stop, otra_cancelo, E};
+handle_event(Evento, NombreEstado, Dato) ->
+  inesperado(Evento, NombreEstado),
+  {siguiente_estado, NombreEstado, Dato}.
+
+%% El vento de cancelacion viene de la otra jugadora. Debemos advertir a la otra
+%% jugadora que vamos a salir.
+handle_sync_event(cancela, _Desde, _NombreEstado, E = #estado{}) ->
+  notify_cancel(E#estado.otra),
+  notifica(E, "cancelando negociacion, envio evento de cancelacion", []),
+  {stop, cancelado, ok, E};
+%% No responder a eventos inesperados.
+handle_sync_event(Evento, _Desde, NombreEstado, Dato) ->
+  inesperado(Evento, _NombreEstado),
+  {siguiente_estado, NombreEstado, Dato}.
+
+handle_info({'DOWN', Ref, process, Pid, Motivo}, _, E=#estado{otra=Pid, monitor=Ref}) ->
+  notifica(E, "La otra jugadora murio", []),
+  {stop, {other_down, Motivo}, E};
+handle_info(Info, StateName, Data) ->
+  unexpected(Info, StateName),
+  {next_state, StateName, Data}.
+
+code_change(_OldVsn, NombreEstado, Dato, _Extra) ->
+  {ok, NombreEstado, Dato}.
+
+%% Transaccion completada
+terminate(normal, lista, E=#estado{}) ->
+  notice(E, "dejando MEF.", []);
+terminate(_Motivo, _NombreEstado, _DatoEstado) ->
+  ok.
