@@ -122,3 +122,24 @@ ocupada({negociar, OtroPid}, Desde, E=#estado{}) ->
 ocupada(Evento, _Desde, Dato) ->
   inesperado(Evento, ocupada),
   {siguiente_estado, ocupada, Dato}.
+
+ocupada_espera({pide_negociar, OtroPid}, E=#estado{otra=OtroPid}) ->
+  gen_fsm:reply(E#estado.desde, ok),
+  notifica(E, "comenzando negociacion", []),
+  {siguiente_estado, negociar, E};
+  %% La otra jugadora ha aceptado la oferta, cambia a estado negociar
+ocupada_espera({acepta_negociar, OtroPid}, E=#estado{otra=OtroPid}) ->
+    gen_fsm:reply(E#estado.desde, ok),
+    notifica(E, "comienza negociacion", []),
+    {siguiente_estado, negociar, E};
+ocupada_espera(Evento, Dato) ->
+  inesperado(Evento, ocupada_espera),
+  {siguiente_estado, ocupada_espera, Data}.
+
+ocupada_espera(acepta_negociar, _Desde, E=#estado{otra=OtroPid}) ->
+  acepta_negociar(OtroPid, self()),
+  notifica(E, "negociacion aceptada", []),
+  {reply, ok, negociar, E};
+ocupada_espera(Evento, _Desde, Datos) ->
+  inesperado(Evento, ocupada_espera),
+  {siguiente_estado, ocupada_espera, Datos}.
