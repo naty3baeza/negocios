@@ -181,6 +181,14 @@ negociar(Evento, Dato) ->
   inesperado(Evento, negociar),
   {siguiente_estado, negociar, Dato}.
 
+negociar(lista, Desde, E = #estado{otra=OtroPid}) ->
+  estas_lista(OtroPid),
+  notifica(E, "preguntando si esta lista, esperando", []),
+  {siguiente_estado, espera, E#estado{desde=Desde}};
+negociar(Evento, _Desde, E) ->
+  inesperado(Evento, negociar),
+  {siguiente_estado, negociar, E}.
+
 espera({hace_oferta, Item}, E=#estado{otrositems=OtrosItems}) ->
   gen_fsm:reply(E#estado.desde, oferta_modificada),
   notifica(E, "la otra jugadora ofrece ~p", [Item]),
