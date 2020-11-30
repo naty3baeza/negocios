@@ -9,7 +9,7 @@
         terminate/3, code_change/4,
         % estados propios
         ocupada/2, ocupada/3, ocupada_espera/2, ocupada_espera/3, negociar/2,
-negociar/3, espera/2, lista/2, lista/3]).
+        negociar/3, espera/2, lista/2, lista/3]).
 
 -record(estado, {nombre="",
                  otra,
@@ -49,10 +49,6 @@ lista(MiPid) ->
 %% Cancelas la transaccion
 cancela(MiPid) ->
       gen_fsm:sync_send_all_state_event(MiPid, cancela).
-
-
-
-
 
 %% pide a la otra MEF iniciar la negociacion
 %todas las llamadas son asincronas para evitar deadlocks
@@ -105,10 +101,10 @@ notifica_cancelacion(OtroPid) ->
 init(Nombre) ->
     {ok, ocupada, #estado{nombre=Nombre}}.
 
-%% idle state is the state before any trade is done.
-%% The other player asks for a negotiation. We basically
-%% only wait for our own user to accept the trade,
-%% and store the other's Pid for future uses
+%% el estado 'ocupada' es anterior a cualquier negociacion.
+%% La otra jugadora pide por una negociacion. Basicamente
+%% solo esperamos porque nuestra propia usuaria acepte negociar
+%% y que almacene el OtroPid para futuros usos
 ocupada({pide_negociar, OtroPid}, E=#estado{}) ->
   Ref = monitor(process, OtroPid),
   notifica(E, "~p pregunta si quiere comenzar a negociar", [OtroPid]),
@@ -117,8 +113,8 @@ ocupada({pide_negociar, OtroPid}, E=#estado{}) ->
     inesperado(Evento, ocupada),
     {next_state, ocupada, Dato}.
 
-  %% trade call coming from the user. Forward to the other side,
-  %% forward it and store the other's Pid
+%% llamada de negociacion entrante del usuario. Reenvia al otro lado
+%% lo reenvia y almacena el Pid de la otra jugadora.
 ocupada({negociar, OtroPid}, Desde, E=#estado{}) ->
   pide_negociar(OtroPid, self()),
   notifica(E, "pide a usuario ~p por un negocio", [OtroPid]),
@@ -128,11 +124,7 @@ ocupada(Evento, _Desde, Dato) ->
   inesperado(Evento, ocupada),
   {next_state, ocupada, Dato}.
 
-%% idle_wait allows to expect replies from the other side and
-%% start negotiating for items
-%% the other side asked for a negotiation while we asked for it too.
-%% this means both definitely agree to the idea of doing a trade.
-%% Both sides can assume the other feels the same!
+
 ocupada_espera({pide_negociar, OtroPid}, E=#estado{otra=OtroPid}) ->
   io:format(" ~p esta en ocupada-espera, con pide negociar con ~p~n",[self(), OtroPid]),
   gen_fsm:reply(E#estado.desde, ok),
@@ -148,8 +140,7 @@ ocupada_espera(Evento, Dato) ->
   inesperado(Evento, ocupada_espera),
   {next_state, ocupada_espera, Dato}.
 
-%% Our own client has decided to accept the transaction.
-%% Make the other FSM aware of it and move to negotiate state.
+
 ocupada_espera(acepta_negociar, _Desde, E=#estado{otra=OtroPid}) ->
   acepta_negociar(OtroPid, self()),
   notifica(E, "aceptando negociacion", []),
@@ -158,7 +149,7 @@ ocupada_espera(Evento, _Desde, Dato) ->
   inesperado(Evento, ocupada_espera),
   {next_state, ocupada_espera, Dato}.
 
-%% own side offering an item
+
 negociar({oferta, Item}, E=#estado{itemspropios=ItemsPropios}) ->
   hace_oferta(E#estado.otra, Item),
   notifica(E, "oferta  ~p", [Item]),
@@ -190,9 +181,7 @@ negociar(Evento, Dato) ->
   inesperado(Evento, negociar),
   {next_state, negociar, Dato}.
 
-%% own user mentioning he is ready. Next state should be wait
-%% and we add the 'from' to the state so we can reply to the
-%% user once ready.
+
 negociar(lista, Desde, E = #estado{otra=OtroPid}) ->
   estas_lista(OtroPid),
   notifica(E, "preguntando si esta lista, esperando", []),
@@ -201,36 +190,26 @@ negociar(Evento, _Desde, E) ->
   inesperado(Evento, negociar),
   {next_state, negociar, E}.
 
-%% other side offering an item. Don't forget our client is still
-%% waiting for a reply, so let's tell them the trade state changed
-%% and move back to the negotiate state
+
 espera({hace_oferta, Item}, E=#estado{otrositems=OtrosItems}) ->
   gen_fsm:reply(E#estado.desde, oferta_modificada),
   notifica(E, "la otra jugadora ofrece ~p", [Item]),
   {next_state, negociar, E#estado{otrositems=agrega(Item, OtrosItems)}};
-%% other side cancelling an item offer. Don't forget our client is still
-%% waiting for a reply, so let's tell them the trade state changed
-%% and move back to the negotiate state
+
 espera({deshace_oferta, Item}, E=#estado{otrositems=OtrosItems}) ->
   gen_fsm:reply(E#estado.desde, oferta_modificada),
   notifica(E, "La otra jugadora cancela oferta de ~p", [Item]),
   {next_state, negociar, E#estado{otrositems=quita(Item, OtrosItems)}};
-%% The other client falls in ready state and asks us about it.
-%% However, the other client could have moved out of wait state already.
-%% Because of this, we send that we indeed are 'ready!' and hope for them
-%% to do the same.
+
 espera(estas_lista, E=#estado{}) ->
   estoy_lista(E#estado.otra),
   notifica(E, "Me preguntaron si estoy lista y lo estoy. Esperando por la misma respuesta.", []),
   {next_state, espera, E};
-%% The other client is not ready to trade yet. We keep waiting
-%% and won't reply to our own client yet.
+
 espera(no_aun, E = #estado{}) ->
   notifica(E, "La otra jugadora no esta lista aun", []),
   {next_state, espera, E};
-%% The other client was waiting for us! Let's reply to ours and
-%% send the ack message for the commit initiation on the other end.
-%% We can't go back after this.
+
 espera('lista!', E=#estado{}) ->
   estoy_lista(E#estado.otra),
   ack_trans(E#estado.otra),
@@ -241,11 +220,7 @@ espera('lista!', E=#estado{}) ->
 espera(Evento, Dato) ->
   inesperado(Evento, espera),
   {next_state, espera, Dato}.
-%% Ready state with the acknowledgement message coming from the
-%% other side. We determine if we should begin the synchronous
-%% commit or if the other side should.
-%% A successful commit (if we initiated it) could be done
-%% in the terminate function or any other before.
+
 lista(ack, E=#estado{}) ->
   case prioridad(self(), E#estado.otra) of
     true ->
@@ -269,9 +244,6 @@ lista(Evento, Dato) ->
   inesperado(Evento, lista),
   {next_state, lista, Dato}.
 
-%% We weren't the ones to initiate the commit.
-%% Let's reply to the other side to say we're doing our part
-%% and terminate.
 lista(pide_commit, _Desde, E) ->
   notifica(E, "responde al pedido de commit", []),
   {reply, lista_commit, lista, E};
@@ -336,11 +308,6 @@ inesperado(Msg, Estado) ->
     io:format("~p se recibio un evento inesperado ~p durante el estado ~p~n",
               [self(), Msg, Estado]).
 
-%% This function allows two processes to make a synchronous call to each
-%% other by electing one Pid to do it. Both processes call it and it
-%% tells them whether they should initiate the call or not.
-%% This is done by knowing that Erlang will alwys sort Pids in an
-%% absolute manner depending on when and where they were spawned.
 prioridad(MiPid, OtroPid) when MiPid > OtroPid -> true;
 prioridad(MiPid, OtroPid) when MiPid < OtroPid -> false.
 
