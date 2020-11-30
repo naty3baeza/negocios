@@ -297,7 +297,7 @@ handle_event(Evento, NombreEstado, Dato) ->
 handle_sync_event(cancela, _Desde, _NombreEstado, E = #estado{}) ->
   notifica_cancelacion(E#estado.otra),
   notifica(E, "cancelando negociacion, envio evento de cancelacion", []),
-  {stop, cancelado, ok, E};
+  {stop, cancelo, ok, E};
 %% No responder a eventos inesperados.
 handle_sync_event(Evento, _Desde, NombreEstado, Dato) ->
   inesperado(Evento, NombreEstado),
