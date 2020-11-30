@@ -44,7 +44,7 @@ rechaza_oferta(MiPid, Item) ->
 %% Notifica que estas lista para un trato. Pides a la otra
 %% jugadora que también se declare lista, el trato esta hecho
 lista(MiPid) ->
-    gen_fsm:sync_send_event(MiPid, lista, infinito).
+    gen_fsm:sync_send_event(MiPid, lista, infinity).
 
 %% Cancelas la transaccion
 cancela(MiPid) ->
