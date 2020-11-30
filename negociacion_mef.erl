@@ -112,10 +112,10 @@ init(Nombre) ->
 ocupada({pide_negociar, OtroPid}, E=#estado{}) ->
   Ref = monitor(process, OtroPid),
   notifica(E, "~p pregunta si quiere comenzar a negociar", [OtroPid]),
-  {siguiente_estado, ocupada_espera, E#estado{otra=OtroPid, monitor=Ref}};
+  {next_state, ocupada_espera, E#estado{otra=OtroPid, monitor=Ref}};
   ocupada(Evento, Dato) ->
     inesperado(Evento, ocupada),
-    {siguiente_estado, ocupada, Dato}.
+    {next_state, ocupada, Dato}.
 
   %% trade call coming from the user. Forward to the other side,
   %% forward it and store the other's Pid
@@ -123,10 +123,10 @@ ocupada({negociar, OtroPid}, Desde, E=#estado{}) ->
   pide_negociar(OtroPid, self()),
   notifica(E, "pide a usuario ~p por un negocio", [OtroPid]),
   Ref = monitor(process, OtroPid),
-  {siguiente_estado, ocupada_espera, E#estado{otra=OtroPid, monitor=Ref, desde=Desde}};
+  {next_state, ocupada_espera, E#estado{otra=OtroPid, monitor=Ref, desde=Desde}};
 ocupada(Evento, _Desde, Dato) ->
   inesperado(Evento, ocupada),
-  {siguiente_estado, ocupada, Dato}.
+  {next_state, ocupada, Dato}.
 
 %% idle_wait allows to expect replies from the other side and
 %% start negotiating for items
@@ -137,16 +137,16 @@ ocupada_espera({pide_negociar, OtroPid}, E=#estado{otra=OtroPid}) ->
   io:format(" ~p esta en ocupada-espera, con pide negociar con ~p~n",[self(), OtroPid]),
   gen_fsm:reply(E#estado.desde, ok),
   notifica(E, "comenzando negociacion", []),
-  {siguiente_estado, negociar, E};
+  {next_state, negociar, E};
   %% La otra jugadora ha aceptado la oferta, cambia a estado negociar
 ocupada_espera({acepta_negociar, OtroPid}, E=#estado{otra=OtroPid}) ->
     io:format(" ~p esta en ocupada-espera, con pide negociar con ~p~n",[self(), OtroPid]),
     gen_fsm:reply(E#estado.desde, ok),
     notifica(E, "comienza negociacion", []),
-    {siguiente_estado, negociar, E};
+    {next_state, negociar, E};
 ocupada_espera(Evento, Dato) ->
   inesperado(Evento, ocupada_espera),
-  {siguiente_estado, ocupada_espera, Dato}.
+  {next_state, ocupada_espera, Dato}.
 
 %% Our own client has decided to accept the transaction.
 %% Make the other FSM aware of it and move to negotiate state.
@@ -156,26 +156,26 @@ ocupada_espera(acepta_negociar, _Desde, E=#estado{otra=OtroPid}) ->
   {reply, ok, negociar, E};
 ocupada_espera(Evento, _Desde, Dato) ->
   inesperado(Evento, ocupada_espera),
-  {siguiente_estado, ocupada_espera, Dato}.
+  {next_state, ocupada_espera, Dato}.
 
 %% own side offering an item
 negociar({oferta, Item}, E=#estado{itemspropios=ItemsPropios}) ->
   hace_oferta(E#estado.otra, Item),
   notifica(E, "oferta  ~p", [Item]),
-  {siguiente_estado, negociar, E#estado{itemspropios=agrega(Item, ItemsPropios)}};
+  {next_state, negociar, E#estado{itemspropios=agrega(Item, ItemsPropios)}};
 %% El propio lado retractando un item de oferta
 negociar({rechaza_oferta, Item}, E=#estado{itemspropios=ItemsPropios}) ->
   deshace_oferta(E#estado.otra, Item),
   notifica(E, "cancelando oferta en ~p", [Item]),
-  {siguiente_estado, negociar, E#estado{itemspropios=quita(Item, ItemsPropios)}};
+  {next_state, negociar, E#estado{itemspropios=quita(Item, ItemsPropios)}};
 %% el otro lado ofreciendo items
 negociar({hace_oferta, Item}, E=#estado{otrositems=OtrosItems}) ->
   notifica(E, "la otra jugadora ofreciendo ~p", [Item]),
-  {siguiente_estado, negociar, E#estado{otrositems=agrega(Item, OtrosItems)}};
+  {next_state, negociar, E#estado{otrositems=agrega(Item, OtrosItems)}};
 %% el otro lado rechaza un item de oferta
 negociar({deshace_oferta, Item}, E=#estado{otrositems=OtrosItems}) ->
   notifica(E, "La otra jugadora cancela oferta en ~p", [Item]),
-  {siguiente_estado, negociar, E#estado{otrositems=quita(Item, OtrosItems)}};
+  {next_state, negociar, E#estado{otrositems=quita(Item, OtrosItems)}};
 
 
 negociar(estas_lista, E=#estado{otra=OtroPid}) ->
@@ -185,10 +185,10 @@ negociar(estas_lista, E=#estado{otra=OtroPid}) ->
           "Vos tenes ~p, La otra jugadora tiene ~p",
           [E#estado.otrositems, E#estado.itemspropios]),
   no_aun(OtroPid),
-  {siguiente_estado, negociar, E};
+  {next_state, negociar, E};
 negociar(Evento, Dato) ->
   inesperado(Evento, negociar),
-  {siguiente_estado, negociar, Dato}.
+  {next_state, negociar, Dato}.
 
 %% own user mentioning he is ready. Next state should be wait
 %% and we add the 'from' to the state so we can reply to the
@@ -196,10 +196,10 @@ negociar(Evento, Dato) ->
 negociar(lista, Desde, E = #estado{otra=OtroPid}) ->
   estas_lista(OtroPid),
   notifica(E, "preguntando si esta lista, esperando", []),
-  {siguiente_estado, espera, E#estado{desde=Desde}};
+  {next_state, espera, E#estado{desde=Desde}};
 negociar(Evento, _Desde, E) ->
   inesperado(Evento, negociar),
-  {siguiente_estado, negociar, E}.
+  {next_state, negociar, E}.
 
 %% other side offering an item. Don't forget our client is still
 %% waiting for a reply, so let's tell them the trade state changed
@@ -207,14 +207,14 @@ negociar(Evento, _Desde, E) ->
 espera({hace_oferta, Item}, E=#estado{otrositems=OtrosItems}) ->
   gen_fsm:reply(E#estado.desde, oferta_modificada),
   notifica(E, "la otra jugadora ofrece ~p", [Item]),
-  {siguiente_estado, negociar, E#estado{otrositems=agrega(Item, OtrosItems)}};
+  {next_state, negociar, E#estado{otrositems=agrega(Item, OtrosItems)}};
 %% other side cancelling an item offer. Don't forget our client is still
 %% waiting for a reply, so let's tell them the trade state changed
 %% and move back to the negotiate state
 espera({deshace_oferta, Item}, E=#estado{otrositems=OtrosItems}) ->
   gen_fsm:reply(E#estado.desde, oferta_modificada),
   notifica(E, "La otra jugadora cancela oferta de ~p", [Item]),
-  {siguiente_estado, negociar, E#estado{otrositems=quita(Item, OtrosItems)}};
+  {next_state, negociar, E#estado{otrositems=quita(Item, OtrosItems)}};
 %% The other client falls in ready state and asks us about it.
 %% However, the other client could have moved out of wait state already.
 %% Because of this, we send that we indeed are 'ready!' and hope for them
@@ -222,12 +222,12 @@ espera({deshace_oferta, Item}, E=#estado{otrositems=OtrosItems}) ->
 espera(estas_lista, E=#estado{}) ->
   estoy_lista(E#estado.otra),
   notifica(E, "Me preguntaron si estoy lista y lo estoy. Esperando por la misma respuesta.", []),
-  {siguiente_estado, espera, E};
+  {next_state, espera, E};
 %% The other client is not ready to trade yet. We keep waiting
 %% and won't reply to our own client yet.
 espera(no_aun, E = #estado{}) ->
   notifica(E, "La otra jugadora no esta lista aun", []),
-  {siguiente_estado, espera, E};
+  {next_state, espera, E};
 %% The other client was waiting for us! Let's reply to ours and
 %% send the ack message for the commit initiation on the other end.
 %% We can't go back after this.
@@ -236,11 +236,11 @@ espera('lista!', E=#estado{}) ->
   ack_trans(E#estado.otra),
   gen_fsm:reply(E#estado.desde, ok),
   notifica(E, "La otra jugadora esta lista. Pasando al estado lista", []),
-  {siguiente_estado, lista, E};
+  {next_state, lista, E};
 
 espera(Evento, Dato) ->
   inesperado(Evento, espera),
-  {siguiente_estado, espera, Dato}.
+  {next_state, espera, Dato}.
 %% Ready state with the acknowledgement message coming from the
 %% other side. We determine if we should begin the synchronous
 %% commit or if the other side should.
@@ -263,11 +263,11 @@ lista(ack, E=#estado{}) ->
         {stop, {Class, Reason}, E}
       end;
     false ->
-      {siguiente_estado, lista, E}
+      {next_state, lista, E}
     end;
 lista(Evento, Dato) ->
   inesperado(Evento, lista),
-  {siguiente_estado, lista, Dato}.
+  {next_state, lista, Dato}.
 
 %% We weren't the ones to initiate the commit.
 %% Let's reply to the other side to say we're doing our part
@@ -281,7 +281,7 @@ lista(hace_commit, _Desde, E) ->
   {stop, normal, ok, E};
 lista(Evento, _Desde, Dato) ->
   inesperado(Evento, lista),
-  {siguiente_estado, lista, Dato}.
+  {next_state, lista, Dato}.
 
 %% La otra jugadora envia el evento de cancelacion
 %% Hay que detenerse no importa lo que se estaba haciendo y terminar.
@@ -290,7 +290,7 @@ handle_event(cancela, _NombreEstado, E=#estado{}) ->
   {stop, otra_cancelo, E};
 handle_event(Evento, NombreEstado, Dato) ->
   inesperado(Evento, NombreEstado),
-  {siguiente_estado, NombreEstado, Dato}.
+  {next_state, NombreEstado, Dato}.
 
 %% El evento de cancelacion viene de la otra jugadora. Debemos advertir a la otra
 %% jugadora que vamos a salir.
@@ -301,14 +301,14 @@ handle_sync_event(cancela, _Desde, _NombreEstado, E = #estado{}) ->
 %% No responder a eventos inesperados.
 handle_sync_event(Evento, _Desde, NombreEstado, Dato) ->
   inesperado(Evento, NombreEstado),
-  {siguiente_estado, NombreEstado, Dato}.
+  {next_state, NombreEstado, Dato}.
 
 handle_info({'DOWN', Ref, process, Pid, Motivo}, _, E=#estado{otra=Pid, monitor=Ref}) ->
   notifica(E, "La otra jugadora murio", []),
   {stop, {other_down, Motivo}, E};
 handle_info(Info, NombreEstado, Dato) ->
   inesperado(Info, NombreEstado),
-  {siguiente_estado, NombreEstado, Dato}.
+  {next_state, NombreEstado, Dato}.
 
 code_change(_OldVsn, NombreEstado, Dato, _Extra) ->
   {ok, NombreEstado, Dato}.
