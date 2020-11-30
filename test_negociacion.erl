@@ -65,7 +65,7 @@ c(Parent) ->
     %sys:trace(Pid, true),
     sync2(),
     negociacion_mef:negociacion(Pid, PidD),
-    %% no need to accept_trade thanks to the race condition
+    %% no hay necesidad de aceptar la negociación gracias a la condicion de carrera
     timer:sleep(200),
     negociacion_mef:rechaza_oferta(Pid, "auto"),
     negociacion_mef:oferta(Pid, "moto"),
@@ -80,7 +80,7 @@ d(Parent, PidC, PidCliC) ->
     %sys:trace(Pid,true),
     sync1(PidCliC),
     negociacion_mef:negociacion(Pid, PidC),
-    %% no need to accept_trade thanks to the race condition
+    %% no hay necesidad de aceptar la negociación gracias a la condicion de carrera
     timer:sleep(200),
     negociacion_mef:rechaza_oferta(Pid, "auto"),
     negociacion_mef:oferta(Pid, "bicicleta"),
